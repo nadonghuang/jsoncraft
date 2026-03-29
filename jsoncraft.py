@@ -1512,14 +1512,16 @@ def _deep_merge(base, override):
 def build_parser():
     parser = argparse.ArgumentParser(
         prog='jsoncraft',
-        description='🔧 The Swiss Army Knife for JSON — format, query, convert, diff & validate in your terminal.',
+        description='🔧 The Swiss Army Knife for JSON — format, query, convert, diff, validate, merge & flatten in your terminal.',
         epilog='Examples:\n'
                '  echo \'{"name":"Alice","age":30}\' | jsoncraft fmt\n'
                '  cat data.json | jsoncraft query ".users[0].name"\n'
                '  jsoncraft diff -f a.json -g b.json\n'
+               '  jsoncraft merge -f base.json override.json --strategy deep\n'
+               '  jsoncraft validate -f data.json -s schema.json\n'
+               '  echo \'{"a.b":1}\' | jsoncraft unflatten\n'
                '  jsoncraft to-yaml -f data.json\n'
-               '  jsoncraft csv -f data.json\n'
-               '  jsoncraft validate -f data.json\n',
+               '  jsoncraft csv -f data.json\n',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument('-V', '--version', action='version', version='%(prog)s 1.1.0')
