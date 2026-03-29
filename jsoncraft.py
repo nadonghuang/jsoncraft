@@ -116,19 +116,23 @@ def _highlight_json_string(raw):
                     j += 1
                 j += 1
             string_content = raw[i + 1:j]
-            colored = Colors.green(f'"{string_content}"')
-            result.append(colored)
             i = j + 1
 
-            # Check if this was a key (followed by colon)
-            while i < length and raw[i] in ' \t':
-                result.append(raw[i])
-                i += 1
-            if i < length and raw[i] == ':':
-                result.pop(len(result) - 1)  # remove trailing space
-                result = result[:-1]  # remove the colored string
+            # Check if this was a key (followed by colon after optional whitespace)
+            k = i
+            while k < length and raw[k] in ' \t':
+                k += 1
+            if k < length and raw[k] == ':':
+                # This is a key - color it cyan
                 result.append(Colors.cyan(f'"{string_content}"'))
+                # Add whitespace and colon
+                result.append(raw[i:k])
                 result.append(Colors.dim(':'))
+                i = k + 1
+            else:
+                # This is a string value - color it green
+                result.append(Colors.green(f'"{string_content}"'))
+                # i already advanced past closing quote
 
         elif ch in '-0123456789':
             j = i
@@ -528,9 +532,10 @@ def _tokenize_path(path):
     while i < len(path):
         ch = path[i]
 
-        if ch == '.' and current:
-            tokens.append(''.join(current))
-            current = []
+        if ch == '.':
+            if current:
+                tokens.append(''.join(current))
+                current = []
             i += 1
         elif ch == '[':
             if current:
@@ -1395,10 +1400,12 @@ def build_parser():
 
     # yaml
     p = subparsers.add_parser('to-yaml', help='Convert JSON to YAML')
+    p.set_defaults(to_json=False)
     p.add_argument('-i', '--indent', type=int, default=2, help='Indent spaces (default: 2)')
     p.add_argument('-f', '--file', dest='file', help='Input file')
 
     p = subparsers.add_parser('from-yaml', help='Convert YAML to JSON')
+    p.set_defaults(to_json=True)
     p.add_argument('-i', '--indent', type=int, default=2, help='Indent spaces (default: 2)')
     p.add_argument('-f', '--file', dest='file', help='Input file')
 
