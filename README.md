@@ -1,108 +1,230 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/Zero_Deps-✅-success?style=for-the-badge" alt="Zero Deps"/>
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
-</p>
+# 🔧 jsoncraft
 
-<h1 align="center">🔧 jsoncraft</h1>
+![Python Version](https://img.shields.io/badge/python-3.8%2B-blue?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-orange)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)
 
-<p align="center">
-  <strong>The Swiss Army knife for JSON — format, query, diff, convert & more in your terminal.</strong>
-</p>
+**The Swiss Army Knife for JSON in your terminal.**
 
-<p align="center">
-  <a href="#-features">Features</a> •
-  <a href="#-installation">Install</a> •
-  <a href="#-usage">Usage</a> •
-  <a href="#-license">License</a>
-</p>
-
----
+A zero-dependency Python CLI tool for formatting, querying, converting, diffing, and validating JSON data — with beautiful colored output.
 
 ## ✨ Features
 
-- 📋 **Format & Minify** — Pretty-print or compress JSON with indentation control
-- 🔍 **Query** — Extract values using simple dot-notation paths
-- 🔄 **Convert** — JSON ↔ CSV, JSON → YAML (no dependencies)
-- 📊 **Diff** — Compare two JSON files and show differences
-- 🌳 **Paths** — List all JSON paths in a structure
-- 📈 **Stats** — Show JSON structure overview (keys, types, depth)
-- 🎨 **Syntax Highlight** — Colorized terminal output
-- 📥 **Stdin Support** — Pipe-friendly, works with any data source
+- 🎨 **Format & Minify** — Pretty-print or compress JSON with syntax highlighting
+- 🔍 **jq-like Queries** — Simplified query syntax (`.users[0].name`, `.items[]`, pipes)
+- 🔄 **JSON ↔ YAML** — Bidirectional conversion, no external libs needed
+- ⚡ **JSONPath** — Extract values with JSONPath expressions
+- 📊 **JSON Diff** — Compare two JSON files with colored or unified diff
+- ✅ **Schema Validation** — Validate against JSON Schema or auto-infer schema
+- 📄 **JSON → CSV** — Convert JSON arrays to CSV format
+- 🔧 **Flatten** — Flatten nested structures into dot-notation keys
+- 🌈 **Colored Output** — Beautiful syntax highlighting out of the box
+- 📦 **Zero Dependencies** — Pure Python standard library, pip install not even required
 
 ## 📦 Installation
 
 ```bash
+# Clone and use directly
+git clone https://github.com/nadonghuang/jsoncraft.git
+cd jsoncraft
 chmod +x jsoncraft.py
-sudo cp jsoncraft.py /usr/local/bin/jsoncraft
+
+# Or download single file
+curl -O https://raw.githubusercontent.com/nadonghuang/jsoncraft/main/jsoncraft.py
+chmod +x jsoncraft.py
+
+# Optional: add to PATH
+sudo ln -s $(pwd)/jsoncraft.py /usr/local/bin/jsoncraft
 ```
 
-Or use directly:
+No `pip install` needed — it's a single file with zero dependencies!
+
+## 🚀 Usage Examples
+
+### 1. Pretty-print JSON
+
 ```bash
-python3 jsoncraft.py <command> [args]
+echo '{"name":"Alice","age":30,"skills":["Python","JSON"]}' | python jsoncraft.py fmt
 ```
 
-## 🚀 Usage
+```
+{
+  "name": "Alice",
+  "age": 30,
+  "skills": [
+    "Python",
+    "JSON"
+  ]
+}
+```
+
+### 2. Query with jq-like Syntax
 
 ```bash
-# Pretty-print JSON
-cat data.json | jsoncraft format
+cat users.json | python jsoncraft.py query ".users[0].name"
+# Output: "Alice"
 
-# Minify JSON
-jsoncraft minify data.json
-
-# Query a specific path
-echo '{"user":{"name":"Alice","age":30}}' | jsoncraft query .user.name
-
-# JSON to CSV
-jsoncraft to-csv data.json
-
-# Diff two JSON files
-jsoncraft diff old.json new.json
-
-# Show structure stats
-jsoncraft stats data.json
-
-# List all paths
-jsoncraft paths data.json
+cat users.json | python jsoncraft.py query ".users[].email" -r
+# Output (raw strings):
+# alice@example.com
+# bob@example.com
 ```
 
-### Commands
+### 3. Convert JSON to YAML
 
-| Command | Description |
-|---------|-------------|
-| `format` | Pretty-print JSON (default) |
-| `minify` | Compress JSON to single line |
-| `query <path>` | Extract value at dot-notation path |
-| `to-csv` | Convert JSON array to CSV |
-| `diff <file1> <file2>` | Compare two JSON files |
-| `stats` | Show JSON statistics |
-| `paths` | List all JSON paths |
+```bash
+python jsoncraft.py to-yaml -f config.json > config.yaml
+```
 
-## 🛠 Tech Details
+### 4. Compare Two JSON Files
 
-- **Zero dependencies** — Pure Python standard library
-- **Color output** — Auto-detects terminal color support
-- **Large files** — Streams efficiently, handles big JSON
-- **Error handling** — Clear error messages with line numbers
+```bash
+python jsoncraft.py diff -f old.json -g new.json
+```
+
+```
+  ~ $.version: "1.0.0" → "1.1.0"
+  + $.features[2]: "dark-mode"
+  - $.deprecated: ["old-api"]
+
+  3 difference(s) found
+```
+
+### 5. Convert JSON Array to CSV
+
+```bash
+python jsoncraft.py csv -f users.json > users.csv
+```
+
+### 6. Validate JSON Schema
+
+```bash
+# Auto-infer schema from data
+python jsoncraft.py validate -f data.json
+
+# Validate against specific schema
+python jsoncraft.py validate -f data.json -s schema.json
+```
+
+### 7. Extract Keys or Values
+
+```bash
+cat data.json | python jsoncraft.py keys
+# name
+# age
+# email
+
+cat data.json | python jsoncraft.py values
+```
+
+### 8. Flatten Nested JSON
+
+```bash
+echo '{"user":{"name":"Alice","address":{"city":"NYC"}}}' | python jsoncraft.py flatten
+```
+
+```json
+{
+  "user.name": "Alice",
+  "user.address.city": "NYC"
+}
+```
+
+## 🎨 ASCII Demo
+
+```
+$ echo '{"status":"ok","count":42,"items":[{"id":1,"name":"alpha"},{"id":2,"name":"beta"}]}' | python jsoncraft.py fmt
+
+{
+  "status": "ok",
+  "count": 42,
+  "items": [
+    {
+      "id": 1,
+      "name": "alpha"
+    },
+    {
+      "id": 2,
+      "name": "beta"
+    }
+  ]
+}
+```
+
+*Colors: keys in cyan, strings in green, numbers in magenta, booleans in yellow, null in red*
+
+## 📖 Command Reference
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `fmt` | `format`, `pretty` | Pretty-print JSON with colors |
+| `min` | `minify`, `compact` | Minify JSON to single line |
+| `query` | `q`, `jq` | Query with jq-like syntax |
+| `path` | — | Extract with JSONPath |
+| `diff` | — | Compare two JSON files |
+| `to-yaml` | — | Convert JSON → YAML |
+| `from-yaml` | — | Convert YAML → JSON |
+| `csv` | — | Convert JSON array → CSV |
+| `validate` | — | Validate against schema |
+| `schema` | — | Infer JSON Schema from data |
+| `keys` | — | Extract object keys |
+| `values` | — | Extract object values |
+| `type` | — | Show data type |
+| `length` | — | Show data length |
+| `flatten` | — | Flatten nested structure |
+
+## 🔍 Query Syntax
+
+Supports a simplified jq-like syntax:
+
+| Expression | Description |
+|------------|-------------|
+| `.field` | Access field |
+| `.[n]` | Array index (negative supported) |
+| `.[start:end]` | Array slice |
+| `.[]` | Iterate all elements |
+| `.field.subfield` | Nested access |
+| `keys` / `values` | Get keys or values |
+| `length` / `type` | Get length or type |
+| `unique` / `sort` / `reverse` | Array operations |
+| `first` / `last` | First/last element |
+| `.a \| .b` | Pipe expressions |
+
+Examples:
+```bash
+jsoncraft query ".users[0].name"
+jsoncraft query ".items[].price"
+jsoncraft query ".data | .results | first"
+jsoncraft query "keys"
+jsoncraft query ".users[] | .email"
+```
 
 ## 📁 Project Structure
 
 ```
 jsoncraft/
-├── jsoncraft.py    # Single-file CLI tool
-├── README.md
-└── LICENSE
+├── jsoncraft.py      # Single-file CLI tool (all code here)
+├── README.md         # This file
+└── LICENSE           # MIT License
 ```
 
-## 📄 License
+## 🤝 Contributing
 
-MIT — use it however you like.
+Contributions welcome! This project is intentionally simple — single file, zero deps. Keep it that way.
+
+1. Fork the repo
+2. Make your changes to `jsoncraft.py`
+3. Test thoroughly
+4. Submit a PR
+
+## 📜 License
+
+MIT License — use it however you want.
 
 ---
 
 <p align="center">
-  Made with ⚡ by <a href="https://github.com/nadonghuang">nadonghuang</a>
-  <br/>
-  <sub>If you find this useful, give it a ⭐!</sub>
+  <b>jsoncraft</b> — JSON, crafted for the terminal.<br>
+  Made with ❤️ for developers who live in the CLI.
 </p>
