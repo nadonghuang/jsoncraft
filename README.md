@@ -7,152 +7,182 @@
 
 **The Swiss Army Knife for JSON in your terminal.**
 
-A zero-dependency Python CLI tool for formatting, querying, converting, diffing, and validating JSON data — with beautiful colored output.
+A zero-dependency Python CLI for formatting, querying, converting, diffing,
+validating, merging, and flattening JSON — with beautiful colored output.
 
-## ✨ Features
+---
 
-- 🎨 **Format & Minify** — Pretty-print or compress JSON with syntax highlighting
-- 🔍 **jq-like Queries** — Simplified query syntax (`.users[0].name`, `.items[]`, pipes)
-- 🔄 **JSON ↔ YAML** — Bidirectional conversion, no external libs needed
-- ⚡ **JSONPath** — Extract values with JSONPath expressions
-- 📊 **JSON Diff** — Compare two JSON files with colored or unified diff
-- ✅ **Schema Validation** — Validate against JSON Schema or auto-infer schema
-- 📄 **JSON → CSV** — Convert JSON arrays to CSV format
-- 🔧 **Flatten** — Flatten nested structures into dot-notation keys
-- 🌈 **Colored Output** — Beautiful syntax highlighting out of the box
-- 📦 **Zero Dependencies** — Pure Python standard library, pip install not even required
-
-## 📦 Installation
-
-```bash
-# Clone and use directly
-git clone https://github.com/nadonghuang/jsoncraft.git
-cd jsoncraft
-chmod +x jsoncraft.py
-
-# Or download single file
-curl -O https://raw.githubusercontent.com/nadonghuang/jsoncraft/main/jsoncraft.py
-chmod +x jsoncraft.py
-
-# Optional: add to PATH
-sudo ln -s $(pwd)/jsoncraft.py /usr/local/bin/jsoncraft
-```
-
-No `pip install` needed — it's a single file with zero dependencies!
-
-## 🚀 Usage Examples
-
-### 1. Pretty-print JSON
-
-```bash
-echo '{"name":"Alice","age":30,"skills":["Python","JSON"]}' | python jsoncraft.py fmt
-```
+## 🎬 ASCII Demo
 
 ```
-{
-  "name": "Alice",
-  "age": 30,
-  "skills": [
-    "Python",
-    "JSON"
+$ echo '{"status":"ok","count":42,"active":true,"items":[{"id":1,"name":"alpha"},{"id":2,"name":"beta"}]}' \
+  | python jsoncraft.py fmt
+
+{                             ← keys in cyan
+  "status": "ok",             ← strings in green
+  "count": 42,                ← numbers in magenta
+  "active": true,             ← booleans in yellow
+  "items": [
+    { "id": 1, "name": "alpha" },
+    { "id": 2, "name": "beta" }
   ]
 }
 ```
 
-### 2. Query with jq-like Syntax
-
-```bash
-cat users.json | python jsoncraft.py query ".users[0].name"
-# Output: "Alice"
-
-cat users.json | python jsoncraft.py query ".users[].email" -r
-# Output (raw strings):
-# alice@example.com
-# bob@example.com
 ```
+$ python jsoncraft.py diff -f v1.json -g v2.json
 
-### 3. Convert JSON to YAML
-
-```bash
-python jsoncraft.py to-yaml -f config.json > config.yaml
-```
-
-### 4. Compare Two JSON Files
-
-```bash
-python jsoncraft.py diff -f old.json -g new.json
-```
-
-```
-  ~ $.version: "1.0.0" → "1.1.0"
-  + $.features[2]: "dark-mode"
-  - $.deprecated: ["old-api"]
+  ~ $.version: "1.0.0" → "1.1.0"         ← changed: yellow
+  + $.features[2]: "dark-mode"            ← added:   green
+  - $.deprecated: ["old-api"]             ← removed: red
 
   3 difference(s) found
 ```
 
-### 5. Convert JSON Array to CSV
+```
+$ python jsoncraft.py merge -f base.json override.json --strategy deep
 
-```bash
-python jsoncraft.py csv -f users.json > users.csv
+{
+  "host": "prod.example.com",   ← from override
+  "port": 443,                  ← from override
+  "debug": false                ← from base (not overridden)
+}
 ```
 
-### 6. Validate JSON Schema
+---
+
+## ✨ Features
+
+| Category | What you get |
+|----------|-------------|
+| 🎨 **Format & Minify** | Pretty-print or compress JSON with syntax highlighting |
+| 🔍 **jq-like Queries** | `.users[0].name`, `.items[]`, pipes, built-in functions |
+| ⚡ **JSONPath** | Extract values with `$.store.book[*].author` syntax |
+| 📊 **JSON Diff** | Color, unified, or stat modes for comparing two files |
+| ✅ **Schema Validation** | Validate against JSON Schema (draft-07) or auto-infer |
+| 🔀 **Merge** | Deep, shallow, or concat strategies for combining files |
+| 🔧 **Flatten / Unflatten** | Dot-notation ↔ nested JSON, both directions |
+| 🔄 **JSON ↔ YAML** | Bidirectional conversion, zero external libs |
+| 📄 **JSON → CSV** | Convert JSON arrays to CSV in one command |
+| 🌈 **Colored Output** | Syntax highlighting with auto TTY detection |
+| 📦 **Zero Dependencies** | Pure Python stdlib — no pip install needed |
+
+---
+
+## 📦 Installation
 
 ```bash
-# Auto-infer schema from data
-python jsoncraft.py validate -f data.json
+# Clone and run
+git clone https://github.com/nadonghuang/jsoncraft.git
+cd jsoncraft
+chmod +x jsoncraft.py
 
-# Validate against specific schema
+# Or download the single file
+curl -O https://raw.githubusercontent.com/nadonghuang/jsoncraft/main/jsoncraft.py
+chmod +x jsoncraft.py
+
+# Optional: add to PATH
+sudo ln -s "$(pwd)/jsoncraft.py" /usr/local/bin/jsoncraft
+```
+
+No `pip install` needed. One file. Zero dependencies.
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Pretty-print
+echo '{"name":"Alice","age":30}' | python jsoncraft.py fmt
+
+# Query
+cat users.json | python jsoncraft.py query ".users[0].name"
+
+# Diff
+python jsoncraft.py diff -f old.json -g new.json
+
+# Validate
 python jsoncraft.py validate -f data.json -s schema.json
+
+# Merge
+python jsoncraft.py merge -f base.json local.json --strategy deep
+
+# Flatten → modify → unflatten
+echo '{"a":{"b":1}}' | python jsoncraft.py flatten
+echo '{"a.b":1}' | python jsoncraft.py unflatten
 ```
 
-### 7. Extract Keys or Values
+---
+
+## 🎯 Use Cases
+
+### API Response Debugging
+Quickly inspect, query, and compare API responses without leaving the terminal.
 
 ```bash
-cat data.json | python jsoncraft.py keys
-# name
-# age
-# email
+# Pretty-print an API response with syntax highlighting
+curl -s https://api.example.com/users | python jsoncraft.py fmt
 
-cat data.json | python jsoncraft.py values
+# Pluck a specific field
+curl -s https://api.example.com/users | python jsoncraft.py query ".data[0].email" -r
+
+# Compare two API snapshots
+python jsoncraft.py diff -f response_v1.json -g response_v2.json --mode stat
 ```
 
-### 8. Flatten Nested JSON
+### Configuration File Processing
+Merge configs, flatten for editing, validate before deploy.
 
 ```bash
-echo '{"user":{"name":"Alice","address":{"city":"NYC"}}}' | python jsoncraft.py flatten
+# Deep-merge a base config with environment overrides
+python jsoncraft.py merge -f config/default.json config/production.json \
+  --strategy deep -o config/final.json
+
+# Validate config against a schema before shipping
+python jsoncraft.py validate -f config/final.json -s schema/config.json
+
+# Flatten config for grep-friendly inspection
+python jsoncraft.py flatten -f config.json | grep "database"
 ```
 
-```json
-{
-  "user.name": "Alice",
-  "user.address.city": "NYC"
-}
+### Data Migration
+Transform JSON structures for migration pipelines.
+
+```bash
+# Convert legacy YAML config to JSON
+python jsoncraft.py from-yaml -f legacy.yaml > new_config.json
+
+# Extract CSV for database import
+python jsoncraft.py csv -f users.json > users.csv
+
+# Flatten nested data for flat-file processing
+python jsoncraft.py flatten -f orders.json > orders_flat.json
+
+# Reverse: unflatten flat keys back to nested
+python jsoncraft.py unflatten -f orders_flat.json > orders_nested.json
 ```
 
-## 🎨 ASCII Demo
+---
 
-```
-$ echo '{"status":"ok","count":42,"items":[{"id":1,"name":"alpha"},{"id":2,"name":"beta"}]}' | python jsoncraft.py fmt
+## 🏆 Why Choose jsoncraft?
 
-{
-  "status": "ok",
-  "count": 42,
-  "items": [
-    {
-      "id": 1,
-      "name": "alpha"
-    },
-    {
-      "id": 2,
-      "name": "beta"
-    }
-  ]
-}
-```
+| | **jsoncraft** | **jq** | **python -m json.tool** |
+|---|---|---|---|
+| Install | Download one file | Package manager (brew/apt) | Built-in |
+| Dependencies | **Zero** | C lib, ~3 MB | Python stdlib |
+| Syntax highlighting | ✅ Always on | ❌ None | ❌ None |
+| Diff two files | ✅ 3 modes | ❌ Manual | ❌ No |
+| Schema validation | ✅ Built-in | ❌ Need `jaq`/external | ❌ No |
+| Merge JSON | ✅ 3 strategies | ✅ `*` operator | ❌ No |
+| Flatten / unflatten | ✅ Both | ❌ No | ❌ No |
+| YAML conversion | ✅ Both ways | ❌ Need `yq` | ❌ No |
+| jq-like queries | ✅ Simplified | ✅ Full Turing-complete | ❌ No |
+| JSONPath | ✅ Built-in | ❌ Different syntax | ❌ No |
+| Learning curve | **Low** — dot notation | High — own language | None |
 
-*Colors: keys in cyan, strings in green, numbers in magenta, booleans in yellow, null in red*
+**TL;DR**: `jq` is more powerful for complex transformations. `json.tool` is always available. `jsoncraft` sits in the sweet spot — more features than `json.tool`, easier to learn than `jq`, and zero dependencies.
+
+---
 
 ## 📖 Command Reference
 
@@ -163,20 +193,40 @@ $ echo '{"status":"ok","count":42,"items":[{"id":1,"name":"alpha"},{"id":2,"name
 | `query` | `q`, `jq` | Query with jq-like syntax |
 | `path` | — | Extract with JSONPath |
 | `diff` | — | Compare two JSON files |
+| `merge` | — | Merge multiple JSON files |
+| `flatten` | — | Flatten nested structure to dot-notation |
+| `unflatten` | — | Expand dot-notation back to nested |
+| `validate` | — | Validate against JSON Schema |
+| `schema` | — | Infer JSON Schema from data |
 | `to-yaml` | — | Convert JSON → YAML |
 | `from-yaml` | — | Convert YAML → JSON |
 | `csv` | — | Convert JSON array → CSV |
-| `validate` | — | Validate against schema |
-| `schema` | — | Infer JSON Schema from data |
 | `keys` | — | Extract object keys |
 | `values` | — | Extract object values |
 | `type` | — | Show data type |
 | `length` | — | Show data length |
-| `flatten` | — | Flatten nested structure |
 
-## 🔍 Query Syntax
+---
 
-Supports a simplified jq-like syntax:
+## 📖 Detailed Usage
+
+### Pretty-print (`fmt`)
+
+```bash
+echo '{"name":"Alice","age":30}' | python jsoncraft.py fmt
+echo '{"name":"Alice","age":30}' | python jsoncraft.py fmt --indent 4 --sort
+```
+
+### Query (`query`)
+
+```bash
+cat data.json | python jsoncraft.py query ".users[0].name"        # "Alice"
+cat data.json | python jsoncraft.py query ".users[].email" -r     # raw strings
+cat data.json | python jsoncraft.py query ".data | first"
+cat data.json | python jsoncraft.py query "keys"
+```
+
+**Supported expressions:**
 
 | Expression | Description |
 |------------|-------------|
@@ -184,30 +234,113 @@ Supports a simplified jq-like syntax:
 | `.[n]` | Array index (negative supported) |
 | `.[start:end]` | Array slice |
 | `.[]` | Iterate all elements |
-| `.field.subfield` | Nested access |
+| `.field.sub` | Nested access |
 | `keys` / `values` | Get keys or values |
 | `length` / `type` | Get length or type |
 | `unique` / `sort` / `reverse` | Array operations |
 | `first` / `last` | First/last element |
 | `.a \| .b` | Pipe expressions |
 
-Examples:
+### Diff (`diff`)
+
 ```bash
-jsoncraft query ".users[0].name"
-jsoncraft query ".items[].price"
-jsoncraft query ".data | .results | first"
-jsoncraft query "keys"
-jsoncraft query ".users[] | .email"
+python jsoncraft.py diff -f old.json -g new.json                  # color mode (default)
+python jsoncraft.py diff -f old.json -g new.json --mode unified   # git-style patch
+python jsoncraft.py diff -f old.json -g new.json --mode stat      # summary stats
 ```
 
-## 📁 Project Structure
+### Validate (`validate`)
 
+```bash
+# Validate against an explicit schema
+python jsoncraft.py validate -f data.json -s schema.json
+
+# Auto-infer schema from the data itself
+python jsoncraft.py validate -f data.json
+
+# Infer and save a schema
+python jsoncraft.py schema -f data.json > schema.json
 ```
-jsoncraft/
-├── jsoncraft.py      # Single-file CLI tool (all code here)
-├── README.md         # This file
-└── LICENSE           # MIT License
+
+Supports JSON Schema draft-07 keywords: `type`, `properties`, `required`, `additionalProperties`, `items`, `minItems`, `maxItems`, `uniqueItems`, `minLength`, `maxLength`, `pattern`, `minimum`, `maximum`, `enum`.
+
+### Merge (`merge`)
+
+```bash
+# Deep merge (nested objects merged recursively, later files win)
+python jsoncraft.py merge -f base.json override.json --strategy deep
+
+# Shallow merge (top-level only, later values override)
+python jsoncraft.py merge -f a.json b.json --strategy shallow
+
+# Concat (arrays appended, objects updated)
+python jsoncraft.py merge -f arr1.json arr2.json --strategy concat
+
+# Output to file
+python jsoncraft.py merge -f base.json prod.json -o final.json
 ```
+
+### Flatten / Unflatten
+
+```bash
+# Flatten nested JSON → dot-notation keys
+echo '{"user":{"name":"Alice","address":{"city":"NYC"}}}' | python jsoncraft.py flatten
+# {"user.name": "Alice", "user.address.city": "NYC"}
+
+# Unflatten → nested JSON
+echo '{"user.name":"Alice","user.address.city":"NYC"}' | python jsoncraft.py unflatten
+# {"user": {"name": "Alice", "address": {"city": "NYC"}}}
+
+# Custom separator
+echo '{"a":{"b":1}}' | python jsoncraft.py flatten --separator "/"
+# {"a/b": 1}
+```
+
+### YAML Conversion
+
+```bash
+python jsoncraft.py to-yaml -f config.json > config.yaml
+python jsoncraft.py from-yaml -f config.yaml > config.json
+```
+
+### CSV Export
+
+```bash
+python jsoncraft.py csv -f users.json > users.csv
+```
+
+---
+
+## ❓ FAQ
+
+**Q: Do I need to install anything?**
+No. `jsoncraft` is a single Python file with zero external dependencies. Just download and run with Python 3.8+.
+
+**Q: How is this different from `jq`?**
+`jq` is a powerful Turing-complete language for JSON transformation. `jsoncraft` trades that power for ease of use — simple dot-notation queries, built-in diff/merge/validate, and colored output out of the box. No new language to learn.
+
+**Q: Can I use it without cloning the repo?**
+Yes. Download the single file:
+```bash
+curl -O https://raw.githubusercontent.com/nadonghuang/jsoncraft/main/jsoncraft.py
+```
+
+**Q: Does it work on Windows?**
+Yes, as long as you have Python 3.8+. Colors work in Windows Terminal, PowerShell 7+, and cmd with ANSI support.
+
+**Q: How do I disable colors?**
+Use `--no-color` or set the `NO_COLOR` environment variable. Colors also auto-disable when piping output.
+
+**Q: What JSON Schema features are supported?**
+`type`, `properties`, `required`, `additionalProperties`, `items`, `minItems`/`maxItems`, `uniqueItems`, `minLength`/`maxLength`, `pattern`, `minimum`/`maximum`, and `enum`. This covers the most common validation scenarios.
+
+**Q: Can I merge more than two files?**
+Yes. Pass any number of files: `python jsoncraft.py merge -f a.json b.json c.json d.json`.
+
+**Q: Is there a Python API I can import?**
+Not yet — it's designed as a CLI tool. But the functions are modular; you can `import jsoncraft` and call individual functions if needed.
+
+---
 
 ## 🤝 Contributing
 
