@@ -1195,10 +1195,50 @@ def _validate_schema(data, schema, path="$"):
                     'message': "Required property is missing"
                 })
 
-    # Array items
-    if isinstance(data, list) and 'items' in schema:
-        for i, item in enumerate(data):
-            errors.extend(_validate_schema(item, schema['items'], f"{path}[{i}]"))
+        # Check required at object level (JSON Schema draft-07 style)
+        if 'required' in schema and isinstance(schema['required'], list):
+            for req_key in schema['required']:
+                if req_key not in data:
+                    errors.append({
+                        'path': f"{path}.{req_key}",
+                        'message': "Required property is missing"
+                    })
+
+        # additionalProperties
+        if 'additionalProperties' in schema:
+            allowed_keys = set(schema.get('properties', {}).keys())
+            if isinstance(schema.get('additionalProperties'), bool) and not schema['additionalProperties']:
+                for key in data:
+                    if key not in allowed_keys:
+                        errors.append({
+                            'path': f"{path}.{key}",
+                            'message': f"Additional property '{key}' is not allowed"
+                        })
+            elif isinstance(schema.get('additionalProperties'), dict):
+                for key in data:
+                    if key not in allowed_keys:
+                        errors.extend(_validate_schema(data[key], schema['additionalProperties'], f"{path}.{key}"))
+
+    # Array constraints
+    if isinstance(data, list):
+        if 'items' in schema:
+            for i, item in enumerate(data):
+                errors.extend(_validate_schema(item, schema['items'], f"{path}[{i}]"))
+        if 'minItems' in schema and len(data) < schema['minItems']:
+            errors.append({
+                'path': path,
+                'message': f"Array has {len(data)} items, minimum is {schema['minItems']}"
+            })
+        if 'maxItems' in schema and len(data) > schema['maxItems']:
+            errors.append({
+                'path': path,
+                'message': f"Array has {len(data)} items, maximum is {schema['maxItems']}"
+            })
+        if schema.get('uniqueItems') and len(data) != len(set(json.dumps(x, sort_keys=True, ensure_ascii=False) for x in data)):
+            errors.append({
+                'path': path,
+                'message': "Array items must be unique"
+            })
 
     # String constraints
     if isinstance(data, str):
@@ -1345,6 +1385,128 @@ def _flatten(data, separator=".", prefix=""):
         return {prefix: data}
 
 
+# ── Command: unflatten ───────────────────────────────────────────────────────
+
+def cmd_unflatten(args):
+    """Unflatten dot-notation keys back into nested JSON."""
+    text = read_input(args.file)
+    data = parse_json(text)
+
+    if not isinstance(data, dict):
+        error("unflatten requires a flat JSON object as input")
+
+    result = _unflatten(data, separator=args.separator)
+    print(highlight_json(result, indent=2))
+
+
+def _unflatten(data, separator="."):
+    """Expand dot-notation keys into a nested dict."""
+    result = {}
+    for key, value in data.items():
+        parts = key.split(separator)
+        current = result
+        for i, part in enumerate(parts):
+            # Try to parse array indices
+            if part.isdigit():
+                part = int(part)
+                # Ensure parent is a list
+                if not isinstance(current, list):
+                    # Convert dict index to list if needed
+                    current_list = []
+                    current.append(None)  # placeholder
+                    current = current_list
+                while len(current) <= part:
+                    current.append(None)
+                if i == len(parts) - 1:
+                    current[part] = value
+                else:
+                    if current[part] is None:
+                        next_part = parts[i + 1]
+                        if next_part.isdigit():
+                            current[part] = []
+                        else:
+                            current[part] = {}
+                    current = current[part]
+            else:
+                if i == len(parts) - 1:
+                    current[part] = value
+                else:
+                    next_part = parts[i + 1]
+                    if part not in current or current[part] is None:
+                        if next_part.isdigit():
+                            current[part] = []
+                        else:
+                            current[part] = {}
+                    current = current[part]
+    return result
+
+
+# ── Command: merge ───────────────────────────────────────────────────────────
+
+def cmd_merge(args):
+    """Merge multiple JSON files."""
+    if len(args.files) < 2:
+        error("merge requires at least 2 files")
+
+    datasets = []
+    for filepath in args.files:
+        text = read_input(filepath)
+        data = parse_json(text)
+        datasets.append(data)
+
+    strategy = args.strategy
+    if strategy == 'deep':
+        result = datasets[0]
+        for i in range(1, len(datasets)):
+            result = _deep_merge(result, datasets[i])
+    elif strategy == 'shallow':
+        result = datasets[0]
+        for i in range(1, len(datasets)):
+            if isinstance(result, dict) and isinstance(datasets[i], dict):
+                result = {**result, **datasets[i]}
+            elif isinstance(result, list) and isinstance(datasets[i], list):
+                result = datasets[i]  # last wins
+            else:
+                result = datasets[i]
+    elif strategy == 'concat':
+        if all(isinstance(d, list) for d in datasets):
+            result = []
+            for d in datasets:
+                result.extend(d)
+        elif all(isinstance(d, dict) for d in datasets):
+            result = {}
+            for d in datasets:
+                result.update(d)
+        else:
+            error("concat strategy requires all inputs to be the same type (all arrays or all objects)")
+
+    output = highlight_json(result, indent=2)
+
+    if args.output:
+        with open(args.output, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(result, indent=2, ensure_ascii=False))
+        success(f"Merged {len(datasets)} files → {args.output}")
+    else:
+        print(output)
+        info(f"Merged {len(datasets)} file(s) using {strategy} strategy")
+
+
+def _deep_merge(base, override):
+    """Deep merge two dicts/lists recursively."""
+    if isinstance(base, dict) and isinstance(override, dict):
+        result = dict(base)
+        for key, value in override.items():
+            if key in result and isinstance(result[key], (dict, list)) and isinstance(value, (dict, list)):
+                result[key] = _deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+    elif isinstance(base, list) and isinstance(override, list):
+        return base + override
+    else:
+        return override
+
+
 # ── CLI Argument Parser ──────────────────────────────────────────────────────
 
 def build_parser():
@@ -1360,7 +1522,7 @@ def build_parser():
                '  jsoncraft validate -f data.json\n',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('-V', '--version', action='version', version='%(prog)s 1.0.0')
+    parser.add_argument('-V', '--version', action='version', version='%(prog)s 1.1.0')
     parser.add_argument('-f', '--file', help='Input JSON file (default: stdin)')
     parser.add_argument('--no-color', action='store_true', help='Disable colored output')
 
@@ -1443,6 +1605,19 @@ def build_parser():
     p.add_argument('-s', '--separator', default='.', help='Key separator (default: ".")')
     p.add_argument('-f', '--file', dest='file', help='Input file')
 
+    # unflatten
+    p = subparsers.add_parser('unflatten', help='Unflatten dot-notation keys into nested JSON')
+    p.add_argument('-s', '--separator', default='.', help='Key separator (default: ".")')
+    p.add_argument('-f', '--file', dest='file', help='Input file')
+
+    # merge
+    p = subparsers.add_parser('merge', help='Merge multiple JSON files')
+    p.add_argument('-f', '--files', nargs='+', required=True, dest='files',
+                   help='JSON files to merge (2+)')
+    p.add_argument('-s', '--strategy', choices=['deep', 'shallow', 'concat'], default='deep',
+                   help='Merge strategy: deep (recursive), shallow (top-level), concat (append arrays)')
+    p.add_argument('-o', '--output', help='Output file (default: stdout)')
+
     return parser
 
 
@@ -1488,6 +1663,8 @@ def main():
         'type': cmd_type,
         'length': cmd_length,
         'flatten': cmd_flatten,
+        'unflatten': cmd_unflatten,
+        'merge': cmd_merge,
     }
 
     cmd_func = cmd_map.get(args.command)
